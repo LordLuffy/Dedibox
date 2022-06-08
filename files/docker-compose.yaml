@@ -1,0 +1,59 @@
+version: "3.8"
+services:
+  dockerproxy:
+    image: tecnativa/docker-socket-proxy
+    environment:
+      - CONTAINERS=1
+    networks:
+      - socket_docker
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock"
+
+  reverse_proxy:
+    image: traefik
+    user: 1001:1001
+    restart: unless-stopped
+    sysctls:
+      net.ipv4.ip_unprivileged_port_start: 0
+    command:
+      --accesslog
+      --entrypoints.web.address=:80
+      --entrypoints.websecure.address=:443
+      --entrypoints.websecure.http.tls.certresolver=myresolver
+      --entrypoints.web.http.redirections.entryPoint.to=:443
+      --entrypoints.web.http.redirections.entryPoint.scheme=https
+      --providers.docker.endpoint="tcp://dockerproxy:2375"
+      --providers.docker.exposedbydefault=false
+      --certificatesresolvers.myresolver.acme.tlschallenge
+      --certificatesresolvers.myresolver.acme.email=foo@you.com
+      --certificatesresolvers.myresolver.acme.storage=/letsencrypt/acme.json
+    ports:
+      # The HTTP port
+      - "80:80"
+      # The HTTPS port
+      - "443:443"
+    volumes:
+      - ./acme.json:/ect/letsencrypt/acme.json
+    networks:
+      - socket_docker
+      - web
+
+  whoami:
+    image: containous/whoami
+    labels:
+      traefik.enable: true
+      traefik.docker.network: web
+      traefik.http.routers.whoami.entrypoints: websecure
+      traefik.http.routers.whoami.rule: 'Host(`whoami.domain.com`)'
+      traefik.http.services.whoami.loadbalancer.server.port: 80
+    networks:
+      - web
+
+volumes:
+  certs:
+
+networks:
+  web:
+    name: traefik_wan
+
+  socket_docker:
