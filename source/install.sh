@@ -63,7 +63,7 @@ PGID=$(id -u $DOCKER_USER)
 ######################################################################
 rm /etc/ssh/sshd_config
 cp ../files/sshd_config /etc/ssh
-sed -i 's/$_PORT_SSH_$/$PORT_SSH/g' /etc/ssh/sshd_config
+sed -i 's/@PORTSSH@/$PORT_SSH/g' /etc/ssh/sshd_config
 sudo systemctl restart sshd
 
 ######################################################################
@@ -74,7 +74,7 @@ sudo apt-get remove --auto-remove nftables -y
 sudo apt-get purge nftables -y
 sudo apt-get install iptables -y
 cp ../files/iptables.conf /etc
-sed -i 's/$_PORT_SSH_$/$PORT_SSH/g' /etc/iptables.conf
+sed -i 's/@PORTSSH@/$PORT_SSH/g' /etc/iptables.conf
 cp ../files/iptables.service /etc/systemd/system
 sudo iptables-restore -n /etc/iptables.conf
 sudo systemctl enable --now iptables
@@ -94,3 +94,6 @@ sudo systemctl restart iptables
 #cd /ect/letsencrypt
 #touch acme.json
 #sudo chown 1001:1001 acme.json
+
+
+sed -i 's/PORT_SSH/$PORT_SSH/g' /etc/ssh/sshd_config

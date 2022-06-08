@@ -13,7 +13,7 @@
 
 Include /etc/ssh/sshd_config.d/*.conf
 
-Port $_PORT_SSH_$
+Port @PORTSSH@
 #AddressFamily any
 #ListenAddress 0.0.0.0
 #ListenAddress ::
