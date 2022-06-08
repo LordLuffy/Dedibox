@@ -1,6 +1,6 @@
 # Dedibox
  
-sudo apt-get update && apt-get upgrade && apt-get install apt-transport-https ca-certificates git -y
+sudo apt-get update -y && apt-get upgrade -y && apt-get install apt-transport-https ca-certificates git -y
 cd /tmp
 git clone https://github.com/LordLuffy/Dedibox.git
 cd Dedibox/source
