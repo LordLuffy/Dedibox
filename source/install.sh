@@ -38,13 +38,14 @@ sudo systemctl enable --now iptables
 sudo systemctl restart iptables
 
 ######################################################################
-######################### SECURITE : DOCKER ##########################
+##################### SECURITE : DAEMON DOCKER #######################
 ######################################################################
-sudo apt-get install auditd -y
-rm /etc/audit/rules.d/audit.rules
-cp ../files/audit.rules /etc/audit/rules.d
-sudo systemctl restart auditd
+rm /etc/docker/daemon.json
+cp ../files/daemon.json /etc/docker
+sudo systemctl restart docker
+
 cd /tmp
 git clone https://github.com/docker/docker-bench-security.git
 cd docker-bench-security
-sudo ./docker-bench-security.sh -c host_configuration
+sudo ./docker-bench-security.sh -c docker_daemon_configuration
+sudo auditctl -l
