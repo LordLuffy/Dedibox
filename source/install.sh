@@ -23,24 +23,24 @@ read -r DOCKER_GROUP
 ######################## INSTALLATION DE BASE ########################
 ######################################################################
 # Install requirements
-sudo apt-get install ca-certificates curl  wget gnupg2 lsb-release software-properties-common -y
+#sudo apt-get install ca-certificates curl  wget gnupg2 lsb-release software-properties-common -y
 
 ######################################################################
 ######################## INSTALLATION DOCKER #########################
 ######################################################################
 # Add Docker’s official GPG key
-sudo mkdir -p /etc/apt/keyrings
-curl -fsSL https://download.docker.com/linux/debian/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+#sudo mkdir -p /etc/apt/keyrings
+#curl -fsSL https://download.docker.com/linux/debian/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
 
 # Set up the repository
-echo \
+#echo \
   "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/debian \
   $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
 
 # Update and install Docker
-sudo apt-get update -y
-sudo apt-get install docker-ce docker-ce-cli containerd.io -y
-sudo systemctl enable --now docker
+#sudo apt-get update -y
+#sudo apt-get install docker-ce docker-ce-cli containerd.io -y
+#sudo systemctl enable --now docker
 
 # Création d'un groupe docker et ajout d'un utilisateur (pour ne pas utiliser le compte root)
 sudo groupadd $DOCKER_GROUP
