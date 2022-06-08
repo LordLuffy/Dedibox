@@ -21,8 +21,8 @@ sudo apt-get install docker-ce docker-ce-cli containerd.io docker-compose-plugin
 ########################### SECURITE : SSH ###########################
 ######################################################################
 rm /etc/ssh/sshd_config
-cp ./files/sshd_config /etc/ssh
-
+cp ../files/sshd_config /etc/ssh
+sudo systemctl restart sshd
 
 ######################################################################
 ######################## SECURITE : FIREWALL #########################
@@ -31,3 +31,7 @@ cp ./files/sshd_config /etc/ssh
 sudo apt-get remove --auto-remove nftables -y
 sudo apt-get purge nftables -y
 sudo apt-get install iptables -y
+cp ../files/iptables.conf /etc
+cp ../files/iptables.service /etc/systemd/system
+sudo iptables-restore -n /etc/iptables.conf
+sudo systemctl enable --now iptables
