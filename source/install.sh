@@ -35,3 +35,16 @@ cp ../files/iptables.conf /etc
 cp ../files/iptables.service /etc/systemd/system
 sudo iptables-restore -n /etc/iptables.conf
 sudo systemctl enable --now iptables
+sudo systemctl restart iptables
+
+######################################################################
+######################### SECURITE : DOCKER ##########################
+######################################################################
+sudo apt-get install auditd -y
+rm /etc/audit/rules.d/audit.rules
+cp ../files/audit.rules /etc/audit/rules.d
+sudo systemctl restart auditd
+cd /tmp
+git clone https://github.com/docker/docker-bench-security.git
+cd docker-bench-security
+sudo ./docker-bench-security.sh -c host_configuration
