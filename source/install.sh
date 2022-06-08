@@ -13,10 +13,12 @@ CBLUE="${CSI}1;34m"
 ######################################################################
 ######################### DEMANDE DES SAISIES ########################
 ######################################################################
-echo -n -e "${CYELLOW}Nom de l'utilisateur docker : ${CEND}"
+echo -n "${CYELLOW}Nom de l'utilisateur docker : ${CEND}"
 read -r DOCKER_USER
-echo -n -e "${CYELLOW}Nom du groupe docker : ${CEND}"
+echo -n "${CYELLOW}Nom du groupe docker : ${CEND}"
 read -r DOCKER_GROUP
+echo -n "${CYELLOW}Port SSH : ${CEND}"
+read -r PORT_SSH
 
 
 ######################################################################
@@ -44,12 +46,10 @@ read -r DOCKER_GROUP
 
 # Création d'un groupe docker et ajout d'un utilisateur (pour ne pas utiliser le compte root)
 sudo groupadd $DOCKER_GROUP
-sudo adduser $DOCKER_USER
+sudo useradd $DOCKER_USER
 sudo usermod -aG $DOCKER_GROUP $DOCKER_USER
 PUID=$(id -u $DOCKER_USER)
-echo $PUID
 PGID=$(id -u $DOCKER_USER)
-echo $PGID
 
 ######################################################################
 #################### INSTALLATION DOCKER COMPOSE #####################
@@ -61,22 +61,24 @@ echo $PGID
 ######################################################################
 ########################### SECURITE : SSH ###########################
 ######################################################################
-#rm /etc/ssh/sshd_config
-#cp ../files/sshd_config /etc/ssh
-#sudo systemctl restart sshd
+rm /etc/ssh/sshd_config
+cp ../files/sshd_config /etc/ssh
+sed -i 's/$_PORT_SSH_$/$PORT_SSH/g' /etc/ssh/sshd_config
+sudo systemctl restart sshd
 
 ######################################################################
 ######################## SECURITE : FIREWALL #########################
 ######################################################################
 # Supression de nftables (remplaçant de iptables)
-#sudo apt-get remove --auto-remove nftables -y
-#sudo apt-get purge nftables -y
-#sudo apt-get install iptables -y
-#cp ../files/iptables.conf /etc
-#cp ../files/iptables.service /etc/systemd/system
-#sudo iptables-restore -n /etc/iptables.conf
-#sudo systemctl enable --now iptables
-#sudo systemctl restart iptables
+sudo apt-get remove --auto-remove nftables -y
+sudo apt-get purge nftables -y
+sudo apt-get install iptables -y
+cp ../files/iptables.conf /etc
+sed -i 's/$_PORT_SSH_$/$PORT_SSH/g' /etc/iptables.conf
+cp ../files/iptables.service /etc/systemd/system
+sudo iptables-restore -n /etc/iptables.conf
+sudo systemctl enable --now iptables
+sudo systemctl restart iptables
 
 ######################################################################
 ##################### SECURITE : DAEMON DOCKER #######################

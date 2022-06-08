@@ -13,7 +13,7 @@
 
 Include /etc/ssh/sshd_config.d/*.conf
 
-Port 9458
+Port $_PORT_SSH_$
 #AddressFamily any
 #ListenAddress 0.0.0.0
 #ListenAddress ::
