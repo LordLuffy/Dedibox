@@ -60,23 +60,43 @@ sudo nft add chain ip filtreIPv4 output { type filter hook output priority 0 \; 
 sudo nft add chain ip filtreIPv6 input { type filter hook input priority 0 \; }
 sudo nft add chain ip filtreIPv6 output { type filter hook output priority 0 \; }
 
-# Règles sur la table filtreIPv4
-sudo nft add rule filtreIPv4 input tcp dport 80 accept
-sudo nft add rule filtreIPv4 input tcp dport 443 accept
-sudo nft add rule filtreIPv4 input tcp dport $PORT_SSH accept
+# Règles sur la table filtreIPv4 input
+sudo nft add rule filtreIPv4 input ct state established,related accept # Autorisation de tous les paquets qui correspondent à une connexion TCP déjà établie
+sudo nft add rule filtreIPv4 input tcp dport 53 accept # DNS
+sudo nft add rule filtreIPv4 input tcp dport http accept # HTTP
+sudo nft add rule filtreIPv4 input tcp dport https accept # HTTPS
+sudo nft add rule filtreIPv4 input tcp dport $PORT_SSH accept  #SSH
+sudo nft add rule filtreIPv4 input tcp flags & (fin | syn | rst | psh | ack | urg) > urg counter packets 0 bytes 0 # Scan de ports
+sudo nft add rule filtreIPv4 input tcp flags & (fin | syn | rst | psh | ack | urg) < fin counter packets 0 bytes 0 # Scan de ports
+sudo nft add rule filtreIPv4 input icmp type echo-reply accept # Ping
 sudo nft add rule filtreIPv4 input drop
-sudo nft add rule filtreIPv4 output tcp dport 80 accept
-sudo nft add rule filtreIPv4 output tcp dport 443 accept
-sudo nft add rule filtreIPv4 output drop
+
+# Règles sur la table filtreIPv4 output
+sudo nft add rule filtreIPv4 output ct state established,related accept # Autorisation de tous les paquets qui correspondent à une connexion TCP déjà établie
+sudo nft add rule filtreIPv4 output tcp dport https accept # HTTPS
+sudo nft add rule filtreIPv4 output udp dport domain accept
+sudo nft add rule filtreIPv4 output udp dport ntp accept # NTP
+sudo nft add rule filtreIPv4 output icmp type echo-request accept
+sudo nft add rule filtreIPv4 output drop # Ping
 
 # Règles sur la table filtreIPv6
+sudo nft add rule filtreIPv6 input tcp dport 53 accept
 sudo nft add rule filtreIPv6 input tcp dport 80 accept
 sudo nft add rule filtreIPv6 input tcp dport 443 accept
 sudo nft add rule filtreIPv6 input tcp dport $PORT_SSH accept
+sudo nft add rule filtreIPv6 input icmp type echo-reply accept
 sudo nft add rule filtreIPv6 input drop
+sudo nft add rule filtreIPv6 output tcp dport 53 accept
 sudo nft add rule filtreIPv6 output tcp dport 80 accept
 sudo nft add rule filtreIPv6 output tcp dport 443 accept
+sudo nft add rule filtreIPv6 output icmp type echo-request accept
 sudo nft add rule filtreIPv6 output drop
+
+# On sauvegarde les règles dans un fichier
+sudo nft list table filtreIPv4 > nftables.rules
+sudo nft list table filtreIPv6 > nftables.rules
+
+# 
 
 ######################################################################
 ########################### DOCKER CONFIG ###########################
