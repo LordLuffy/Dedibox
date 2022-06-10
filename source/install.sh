@@ -50,42 +50,17 @@ sudo systemctl restart sshd
 ######################################################################
 ######################## REGLAGE DU FIREWALL #########################
 ######################################################################
-# Activation du firewall et démarrage
+# Activation du firewall
 sudo systemctl enable nftables
+
+# Fichier de configuration
+rm /etc/nftables.conf
+sed -i "s/@PORTSSH@/$PORT_SSH/g" /etc/nftables.conf
+cp ../files/nftables.conf /etc
+
+# Démarrage
 sudo systemctl start nftables
 
-# Suppression de toutes les tables
-sudo nft flush ruleset
-
-# Création des tables
-sudo nft add table ip filtreIPv4
-
-# Base Chain pour liaison hook aux tables
-sudo nft add chain ip filtreIPv4 input { type filter hook input priority 0 \; }
-sudo nft add chain ip filtreIPv4 output { type filter hook output priority 0 \; }
-
-# Règles sur la table filtreIPv4 input
-sudo nft add rule filtreIPv4 input ct state established,related accept # Autorisation de tous les paquets qui correspondent à une connexion TCP déjà établie
-sudo nft add rule filtreIPv4 input tcp dport 53 accept # DNS
-sudo nft add rule filtreIPv4 input tcp dport http accept # HTTP
-sudo nft add rule filtreIPv4 input tcp dport https accept # HTTPS
-sudo nft add rule filtreIPv4 input tcp dport $PORT_SSH accept  #SSH
-sudo nft add rule filtreIPv4 input tcp flags \& \(fin\|syn\|rst\|psh\|ack\|urg\) \> urg counter packets 0 bytes 0 # Scan de ports
-sudo nft add rule filtreIPv4 input tcp flags \& \(fin\|syn\|rst\|psh\|ack\|urg\) \> fin counter packets 0 bytes 0 # Scan de ports
-sudo nft add rule filtreIPv4 input icmp type echo-reply accept # Ping
-sudo nft add rule filtreIPv4 input drop
-
-# Règles sur la table filtreIPv4 output
-sudo nft add rule filtreIPv4 output ct state established,related accept # Autorisation de tous les paquets qui correspondent à une connexion TCP déjà établie
-sudo nft add rule filtreIPv4 output tcp dport https accept # HTTPS
-sudo nft add rule filtreIPv4 output udp dport domain accept
-sudo nft add rule filtreIPv4 output udp dport ntp accept # NTP
-sudo nft add rule filtreIPv4 output icmp type echo-request accept # Ping
-sudo nft add rule filtreIPv4 output drop
-
-# On sauvegarde les règles dans un fichier
-mkdir  /root/nftables/
-sudo nft list table filtreIPv4 > /root/nftables/nftables.rules
 
 ######################################################################
 ########################### DOCKER CONFIG ###########################
