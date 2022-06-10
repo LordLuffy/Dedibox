@@ -11,3 +11,8 @@ cd /tmp
 git clone https://github.com/LordLuffy/Dedibox.git
 cd Dedibox/source
 chmod a+x install.sh && ./install.sh
+
+
+51.38.125.42
+
+9458
