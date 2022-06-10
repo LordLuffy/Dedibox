@@ -55,12 +55,11 @@ sudo systemctl enable nftables
 
 # Fichier de configuration
 rm /etc/nftables.conf
-sed -i "s/@PORTSSH@/$PORT_SSH/g" /etc/nftables.conf
 cp ../files/nftables.conf /etc
+sed -i "s/@PORTSSH@/$PORT_SSH/g" /etc/nftables.conf
 
 # Démarrage
 sudo systemctl start nftables
-
 
 ######################################################################
 ########################### DOCKER CONFIG ###########################
