@@ -19,13 +19,17 @@ echo -n "${CYELLOW}Nom du groupe docker : ${CEND}"
 read -r DOCKER_GROUP
 echo -n "${CYELLOW}Port SSH : ${CEND}"
 read -r PORT_SSH
+echo -n "${CYELLOW}Nom de domaine : ${CEND}"
+read -r DOMAIN_NAME
+echo -n "${CYELLOW}Adresse mail : ${CEND}"
+read -r EMAIL
 
 ######################################################################
 ######################## INSTALLATION DE BASE ########################
 ######################################################################
 # Install requirements
 sudo apt-get update -y
-sudo apt-get install ca-certificates curl wget gnupg2 lsb-release software-properties-common nftables -y
+sudo apt-get install ca-certificates curl wget gnupg2 lsb-release software-properties-common nftables fail2ban -y
 
 # Add Docker’s official GPG key
 sudo mkdir -p /etc/apt/keyrings
@@ -62,34 +66,37 @@ sed -i "s/@PORTSSH@/$PORT_SSH/g" /etc/nftables.conf
 sudo systemctl start nftables
 
 ######################################################################
+#################### INSTALLATION DOCKER COMPOSE #####################
+######################################################################
+curl -s https://api.github.com/repos/docker/compose/releases/latest | grep browser_download_url  | grep docker-compose-linux-x86_64 | cut -d '"' -f 4 | wget -qi -
+chmod +x docker-compose-linux-x86_64
+sudo mv docker-compose-linux-x86_64 /usr/local/bin/docker-compose
+
+######################################################################
 ########################### DOCKER CONFIG ###########################
 ######################################################################
 # Launch service
-#sudo systemctl enable --now docker
+sudo systemctl enable --now docker
 
 # Création d'un groupe docker et ajout d'un utilisateur (pour ne pas utiliser le compte root)
-#sudo groupadd $DOCKER_GROUP
-#sudo useradd $DOCKER_USER
-#sudo usermod -aG $DOCKER_GROUP $DOCKER_USER
-#PUID=$(id -u $DOCKER_USER)
-#PGID=$(id -u $DOCKER_USER)
+sudo groupadd $DOCKER_GROUP
+sudo useradd $DOCKER_USER
+sudo usermod -aG $DOCKER_GROUP $DOCKER_USER
+UID=$(id -u $DOCKER_USER)
+GID=$(id -g $DOCKER_USER)
 
-#rm /etc/docker/daemon.json
-#cp ../files/daemon.json /etc/docker
-#sudo systemctl restart docker
-
-######################################################################
-#################### INSTALLATION DOCKER COMPOSE #####################
-######################################################################
-#curl -s https://api.github.com/repos/docker/compose/releases/latest | grep browser_download_url  | grep docker-compose-linux-x86_64 | cut -d '"' -f 4 | wget -qi -
-#chmod +x docker-compose-linux-x86_64
-#sudo mv docker-compose-linux-x86_64 /usr/local/bin/docker-compose
-
+rm /etc/docker/daemon.json
+cp ../files/daemon.json /etc/docker
+sudo systemctl restart docker
 
 ######################################################################
-################ DOCKER : MISE EN PLACE SERVEUR VPN ##################
+#################### DOCKER : CONFIG FICHIER YAML ####################
 ######################################################################
-#mkdir /ect/letsencrypt
-#cd /ect/letsencrypt
-#touch acme.json
-#sudo chown 1001:1001 acme.json
+mkdir /etc/docker_config
+cp ../files/docker-compose.yaml /etc/docker_config
+sed -i "s/@DOMAIN@/$DOMAIN_NAME/g" /etc/docker_config/docker-compose.yaml
+sed -i "s/@EMAIL@/$EMAIL/g" /etc/docker_config/docker-compose.yaml
+
+mkdir /letsencrypt
+touch /letsencrypt/acme.json
+sudo chown 1001:1001 /letsencrypt/acme.json

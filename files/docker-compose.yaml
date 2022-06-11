@@ -1,39 +1,73 @@
 version: "3.8"
+
+networks:
+  web:
+    name: traefik_wan
+
+  socket_docker:
+
+volumes:
+  certs:
+
 services:
+  # Autoriser et filtrer les demandes pour limiter les actions possibles avec le Socket Proxy de TecnativaDocker. 
   dockerproxy:
     image: tecnativa/docker-socket-proxy
+    user: @UID@:@GID@
+    restart: unless-stopped
     environment:
       - CONTAINERS=1
-    networks:
-      - socket_docker
     volumes:
       - "/var/run/docker.sock:/var/run/docker.sock"
+    networks:
+      - socket_docker
 
   reverse_proxy:
-    image: traefik
-    user: 1001:1001
+    image: traefik:latest
+    user: @UID@:@GID@
     restart: unless-stopped
     sysctls:
       net.ipv4.ip_unprivileged_port_start: 0
     command:
       --accesslog
+      # Découverte des conteneurs en utilisant l'API Docker
+      --providers.docker=true
+      # Activation du dashboard de l'API
+      --api.dashboard=true
+      # LetsEncrypt config
+      --certificatesresolvers.letsencrypt.acme.dnschallenge=true
+      --certificatesresolvers.letsencrypt.acme.dnschallenge.provider=cloudflare
+      --certificatesresolvers.letsencrypt.acme.email=@EMAIL@
+      --certificatesresolvers.letsencrypt.acme.storage=/letsencrypt/acme.json
+      # Redirection du trafic en HTTPS
       --entrypoints.web.address=:80
+      --entrypoints.web.http.redirections.entrypoint.to=
+      --entrypoints.web.http.redirections.entrypoint.scheme=https
       --entrypoints.websecure.address=:443
-      --entrypoints.websecure.http.tls.certresolver=myresolver
+      # Configuration TLS
+      --entrypoints.websecure.http.tls=true
+      --entrypoints.websecure.http.tls.certResolver=letsencrypt
       --entrypoints.web.http.redirections.entryPoint.to=:443
-      --entrypoints.web.http.redirections.entryPoint.scheme=https
+      --entrypoints.websecure.http.tls.domains[0].main=traefik.@DOMAIN@
+      --entrypoints.websecure.http.tls.domains[0].sans=*.@DOMAIN@
+      # Config socket proxy docker
       --providers.docker.endpoint="tcp://dockerproxy:2375"
       --providers.docker.exposedbydefault=false
-      --certificatesresolvers.myresolver.acme.tlschallenge
-      --certificatesresolvers.myresolver.acme.email=foo@you.com
-      --certificatesresolvers.myresolver.acme.storage=/letsencrypt/acme.json
     ports:
       # The HTTP port
       - "80:80"
       # The HTTPS port
       - "443:443"
     volumes:
-      - ./acme.json:/ect/letsencrypt/acme.json
+      - ./letsencrypt:/letsencrypt
+    labels:
+      - "traefik.enable=true"
+      - 'traefik.http.routers.traefik.rule=Host(`traefik.@DOMAIN@`)'
+      - "traefik.http.routers.traefik.entrypoints=websecure"
+      - "traefik.http.routers.traefik.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.traefik.service=api@internal"
+      - 'traefik.http.routers.traefik.middlewares=strip'
+      - 'traefik.http.middlewares.strip.stripprefix.prefixes=/traefik'
     networks:
       - socket_docker
       - web
@@ -43,17 +77,8 @@ services:
     labels:
       traefik.enable: true
       traefik.docker.network: web
+      traefik.http.routers.whoami.rule: 'Host(`@DOMAIN@`)'
       traefik.http.routers.whoami.entrypoints: websecure
-      traefik.http.routers.whoami.rule: 'Host(`whoami.domain.com`)'
       traefik.http.services.whoami.loadbalancer.server.port: 80
     networks:
       - web
-
-volumes:
-  certs:
-
-networks:
-  web:
-    name: traefik_wan
-
-  socket_docker:
