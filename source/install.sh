@@ -23,6 +23,8 @@ echo -n "${CYELLOW}Nom de domaine : ${CEND}"
 read -r DOMAIN_NAME
 echo -n "${CYELLOW}Adresse mail : ${CEND}"
 read -r EMAIL
+echo -n "${CYELLOW}FQDN : ${CEND}"
+read -r HOST
 
 ######################################################################
 ######################## INSTALLATION DE BASE ########################
@@ -73,7 +75,7 @@ chmod +x docker-compose-linux-x86_64
 sudo mv docker-compose-linux-x86_64 /usr/local/bin/docker-compose
 
 ######################################################################
-########################### DOCKER CONFIG ###########################
+########################### DOCKER CONFIG ############################
 ######################################################################
 # Launch service
 sudo systemctl enable --now docker
@@ -82,9 +84,12 @@ sudo systemctl enable --now docker
 sudo groupadd $DOCKER_GROUP
 sudo useradd $DOCKER_USER
 sudo usermod -aG $DOCKER_GROUP $DOCKER_USER
-UID=$(id -u $DOCKER_USER)
-GID=$(id -g $DOCKER_USER)
+PUID=$(id -u $DOCKER_USER)
+PGID=$(id -g $DOCKER_USER)
 
+######################################################################
+######################## SECURISATIOH DOCKER  ########################
+######################################################################
 rm /etc/docker/daemon.json
 cp ../files/daemon.json /etc/docker
 sudo systemctl restart docker
@@ -92,11 +97,24 @@ sudo systemctl restart docker
 ######################################################################
 #################### DOCKER : CONFIG FICHIER YAML ####################
 ######################################################################
-mkdir /etc/docker_config
-cp ../files/docker-compose.yaml /etc/docker_config
-sed -i "s/@DOMAIN@/$DOMAIN_NAME/g" /etc/docker_config/docker-compose.yaml
-sed -i "s/@EMAIL@/$EMAIL/g" /etc/docker_config/docker-compose.yaml
+# Création des dossiers
+mkdir /etc/traefik/logs/traefik.log
+mkdir /etc/traefik/letsencrypt
+touch /etc/traefik/letsencrypt/acme.json
+sudo chown 1001:1001 /etc/traefik/letsencrypt/acme.json
+sudo chmod 600 /etc/traefik/letsencrypt/acme.json
+mkdir /etc/traefik/logs
+touch /etc/traefik/logs/traefik.log
+sudo chown 1001:1001 /etc/traefik/logs/traefik.log
+sudo chmod 600 /etc/traefik/logs/traefik.log
+mkdir /etc/traefik/config
+mkdir /etc/traefik/secrets
+touch /etc/traefik/secrets/ovh_endpoint.secret
+touch /etc/traefik/secrets/ovh_application_key.secret
+touch /etc/traefik/secrets/ovh_application_secret.secret
+touch /etc/traefik/secrets/ovh_consumer_key.secret
 
-mkdir /letsencrypt
-touch /letsencrypt/acme.json
-sudo chown 1001:1001 /letsencrypt/acme.json
+echo "ovh-eu" > /etc/traefik/secrets/ovh_endpoint.secret
+echo "b09850173ee353cf" > /etc/traefik/secrets/ovh_application_key.secret
+echo "184fcd21049b773968c2b784487981a0" > /etc/traefik/secrets/ovh_application_secret.secret
+echo "57b95eb6e1a1f2af64924d0b9e8e38f3" > /etc/traefik/secrets/ovh_consumer_key.secret

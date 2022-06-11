@@ -1,4 +1,5 @@
 {
+        "debug": false,
         "icc": false,
         "live-restore": true,
         "userland-proxy": false,

@@ -12,8 +12,9 @@ volumes:
 services:
   # Autoriser et filtrer les demandes pour limiter les actions possibles avec le Socket Proxy de TecnativaDocker. 
   dockerproxy:
+    container_name: dockerproxy
     image: tecnativa/docker-socket-proxy
-    user: @UID@:@GID@
+    user: @PUID@:@PGID@
     restart: unless-stopped
     environment:
       - CONTAINERS=1
@@ -23,34 +24,29 @@ services:
       - socket_docker
 
   reverse_proxy:
+    container_name: traefik
     image: traefik:latest
-    user: @UID@:@GID@
+    user: @PUID@:@PGID@
     restart: unless-stopped
     sysctls:
       net.ipv4.ip_unprivileged_port_start: 0
     command:
       --accesslog
-      # Découverte des conteneurs en utilisant l'API Docker
       --providers.docker=true
-      # Activation du dashboard de l'API
       --api.dashboard=true
-      # LetsEncrypt config
       --certificatesresolvers.letsencrypt.acme.dnschallenge=true
       --certificatesresolvers.letsencrypt.acme.dnschallenge.provider=cloudflare
       --certificatesresolvers.letsencrypt.acme.email=@EMAIL@
       --certificatesresolvers.letsencrypt.acme.storage=/letsencrypt/acme.json
-      # Redirection du trafic en HTTPS
       --entrypoints.web.address=:80
       --entrypoints.web.http.redirections.entrypoint.to=
       --entrypoints.web.http.redirections.entrypoint.scheme=https
       --entrypoints.websecure.address=:443
-      # Configuration TLS
       --entrypoints.websecure.http.tls=true
       --entrypoints.websecure.http.tls.certResolver=letsencrypt
       --entrypoints.web.http.redirections.entryPoint.to=:443
       --entrypoints.websecure.http.tls.domains[0].main=traefik.@DOMAIN@
       --entrypoints.websecure.http.tls.domains[0].sans=*.@DOMAIN@
-      # Config socket proxy docker
       --providers.docker.endpoint="tcp://dockerproxy:2375"
       --providers.docker.exposedbydefault=false
     ports:
@@ -73,7 +69,10 @@ services:
       - web
 
   whoami:
+    container_name: whoami
     image: containous/whoami
+    user: @PUID@:@PGID@
+    restart: unless-stopped
     labels:
       traefik.enable: true
       traefik.docker.network: web

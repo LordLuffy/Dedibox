@@ -1,0 +1,73 @@
+version: "3.8"
+
+networks:
+  web:
+    name: traefik_wan
+
+secrets:
+  ovh_endpoint:
+    file: "/etc/traefik/secrets/ovh_endpoint.secret"
+  ovh_application_key:
+    file: "/etc/traefik/secrets/ovh_application_key.secret"
+  ovh_application_secret:
+    file: "/etc/traefik/secrets/ovh_application_secret.secret"
+  ovh_consumer_key:
+    file: "/etc/traefik/secrets/ovh_consumer_key.secret"
+
+services:
+  traefik:
+    image: traefik:latest
+    container_name: traefik
+    user: @PUID@:@PGID@
+    restart: always
+    command:
+      - "--accesslog=true"
+      - "--accesslog.filepath=/etc/traefik/logs/traefik.log"
+      - "--log.level=WARN"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--api.insecure=true"
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.websecure.address=:443"
+      - "--certificatesresolvers.resolver.acme.caserver=https://acme-staging-v02.api.letsencrypt.org/directory"
+      - "--certificatesresolvers.resolver.acme.dnschallenge=true"
+      - "--certificatesresolvers.resolver.acme.dnschallenge.provider=ovh"
+      - "--certificatesresolvers.resolver.acme.dnschallenge.delayBeforeCheck=10"
+      - "--certificatesresolvers.resolver.acme.email=loic.chaufournais@hotmail.fr"
+      - "--certificatesresolvers.resolver.acme.storage=/etc/traefik/letsencrypt/acme.json"
+      - "--providers.file.directory=/etc/traefik/config/"
+      - "--providers.file.watch=true"
+    ports:
+      - "80:80"
+      - "443:443"
+      - "8080:8080"
+    secrets:
+      - "ovh_endpoint"
+      - "ovh_application_key"
+      - "ovh_application_secret"
+      - "ovh_consumer_key"
+    environment:
+      - "OVH_ENDPOINT_FILE=/run/secrets/ovh_endpoint"
+      - "OVH_APPLICATION_KEY_FILE=/run/secrets/ovh_application_key"
+      - "OVH_APPLICATION_SECRET_FILE=/run/secrets/ovh_application_secret"
+      - "OVH_CONSUMER_KEY_FILE=/run/secrets/ovh_consumer_key"
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock"
+      - "./letsencrypt:/etc/traefik/letsencrypt"
+      - "./config/:/etc/traefik/config/:ro"
+    networks:
+      - web
+
+  whoami:
+    image: traefik/whoami
+    container_name: whoami
+    user: @PUID@:@PGID@
+    restart: always
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.whoami.rule=Host(`titaniaseed.ovh`)"
+      - "traefik.http.routers.whoami.entrypoints=websecure"
+      - "traefik.http.routers.whoami.tls.certresolver=resolver"
+      - "traefik.http.routers.whoami.middlewares=SecureHeader@file"
+    networks:
+      - web
