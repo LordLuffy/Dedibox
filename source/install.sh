@@ -110,6 +110,9 @@ sudo mkdir /etc/docker/web/traefik
 sudo mkdir /etc/docker/web/letsencrypt
 sudo mkdir /etc/docker/web/logs
 sudo mkdir /etc/docker/web/secrets
+sudo mkdir /etc/docker/web/pgadmin
+sudo mkdir /data
+sudo mkdir /data/postgres
 
 # Création des fichhiers pour traefik
 touch /etc/docker/web/logs/traefik.log
@@ -145,9 +148,15 @@ cp ../files/docker/docker-compose.yaml /etc/docker/web
 cp ../files/docker/traefik/traefik_middlewares.yml /etc/docker/web/traefik/
 cp ../files/docker/traefik/traefik_tls.yml /etc/docker/web/traefik/
 
+
+
+
+cd /
+
 # Remplacement des variables dans les fichiers de config
 cd /etc/docker/web
 sed -i "s/@PUID@/$PUID/g" docker-compose.yaml
 sed -i "s/@PGID@/$PGID/g" docker-compose.yaml
 sed -i "s/@EMAIL@/$EMAIL/g" docker-compose.yaml
 sed -i "s/@DOMAIN_NAME@/$DOMAIN_NAME/g" docker-compose.yaml
+

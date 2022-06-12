@@ -3,6 +3,12 @@ version: "3.8"
 networks:
   web:
     name: traefik_wan
+  postgres:
+    driver: bridge
+
+volumes:
+    postgres:
+    pgadmin:
 
 secrets:
   ovh_endpoint:
@@ -15,6 +21,7 @@ secrets:
     file: "/etc/docker/web/secrets/ovh_consumer_key.secret"
 
 services:
+  ### TRAEFIK REVERSE PROXY ###
   traefik:
     image: traefik:latest
     container_name: traefik
@@ -81,11 +88,12 @@ services:
     networks:
       - web
 
-    authelia:
-      image: authelia/authelia
-      container_name: authelia
-      #user: @PUID@:@PGID@
-      restart: always
+  ### SSO AUTHENTIFICATION ###
+  authelia:
+    image: authelia/authelia
+    container_name: authelia
+    #user: @PUID@:@PGID@
+    restart: always
     healthcheck:
       disable: true
     labels:
@@ -105,6 +113,53 @@ services:
     networks:
       - web
 
+  ### POSTGRES SQL ###
+  db:
+    image: postgres:latest
+    container_name: postgres
+    restart: always
+    ports:
+      - "5432:5432"
+    environment:
+      - "POSTGRES_USER=postgres"
+      - "POSTGRES_PASSWORD=postgres"
+      - "PGDATA=/data/postgres"
+    volumes: 
+      - "postgres:/data/postgres"
+    networks:
+      - postgres
+
+  ### BDD GUI ###
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: pgadmin
+    restart: always
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.pgadmin-http.entrypoints=web"
+      - "traefik.http.routers.pgadmin-http.rule=Host(`pgadmin.@DOMAIN_NAME@`)"
+      - "traefik.http.routers.pgadmin-http.middlewares=pgadmin-https"
+      - "traefik.http.middlewares.pgadmin-https.redirectscheme.scheme=https"
+      - "traefik.http.middlewares.pgadmin-https.redirectscheme.permanent=true"
+      - "traefik.http.routers.pgadmin-https.entrypoints=websecure"
+      - "traefik.http.routers.pgadmin-https.rule=Host(`pgadmin.@DOMAIN_NAME@`)"
+      - "traefik.http.routers.pgadmin-https.tls.certresolver=resolver"
+      - "traefik.http.middlewares.traefik=headersecure@file"
+      #- 'traefik.http.routers.secure.middlewares=authelia@docker'
+    ports:
+      - "${PGADMIN_PORT:-5050}:80"
+    environment:
+      - "PGADMIN_DEFAULT_EMAIL=loic.chaufournais@hotmail.fr"
+      - "PGADMIN_DEFAULT_PASSWORD=admin"
+      #- "PGADMIN_ENABLE_TLS=true"
+      - "PGADMIN_CONFIG_SERVER_MODE: 'False'"
+    volumes:
+       - "pgadmin:/etc/docker/web/pgadmin"
+    networks:
+      - postgres
+      - web
+
+  ### SITE ###
   whoami:
     image: traefik/whoami
     container_name: whoami
@@ -118,7 +173,7 @@ services:
       - "traefik.http.middlewares.whoami-https.redirectscheme.scheme=https"
       - "traefik.http.middlewares.whoami-https.redirectscheme.permanent=true"
       - "traefik.http.routers.whoami-https.entrypoints=websecure"
-      - "traefik.http.routers.whoami-https.rule=Host(`titaniaseed.ovh`)"
+      - "traefik.http.routers.whoami-https.rule=Host(`@DOMAIN_NAME@`)"
       - "traefik.http.routers.whoami-https.tls.certresolver=resolver"
       - "traefik.http.middlewares.traefik=headersecure@file"
       #- 'traefik.http.routers.secure.middlewares=authelia@docker'
