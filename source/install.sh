@@ -56,7 +56,7 @@ sudo apt-get install docker-ce docker-ce-cli containerd.io -y
 ########################### SECURITE : SSH ###########################
 ######################################################################
 rm /etc/ssh/sshd_config
-cp ../files/sshd_config /etc/ssh
+cp ../files/ssh/sshd_config /etc/ssh
 sed -i "s/@PORTSSH@/$PORT_SSH/g" /etc/ssh/sshd_config
 sudo systemctl restart sshd
 
@@ -68,7 +68,7 @@ sudo systemctl enable nftables
 
 # Fichier de configuration
 rm /etc/nftables.conf
-cp ../files/nftables.conf /etc
+cp ../files/nftables/nftables.conf /etc
 sed -i "s/@PORTSSH@/$PORT_SSH/g" /etc/nftables.conf
 
 # Démarrage
@@ -98,30 +98,56 @@ PGID=$(id -g $DOCKER_USER)
 ######################## SECURISATIOH DOCKER  ########################
 ######################################################################
 rm /etc/docker/daemon.json
-cp ../files/daemon.json /etc/docker
+cp ../files/docker/daemon.json /etc/docker
 sudo systemctl restart docker
 
 ######################################################################
 #################### DOCKER : CONFIG FICHIER YAML ####################
 ######################################################################
-# Création des dossiers
-mkdir /etc/traefik/logs/traefik.log
-mkdir /etc/traefik/letsencrypt
-touch /etc/traefik/letsencrypt/acme.json
-sudo chown 1001:1001 /etc/traefik/letsencrypt/acme.json
-sudo chmod 600 /etc/traefik/letsencrypt/acme.json
-mkdir /etc/traefik/logs
-touch /etc/traefik/logs/traefik.log
-sudo chown 1001:1001 /etc/traefik/logs/traefik.log
-sudo chmod 600 /etc/traefik/logs/traefik.log
-mkdir /etc/traefik/config
-mkdir /etc/traefik/secrets
-touch /etc/traefik/secrets/ovh_endpoint.secret
-touch /etc/traefik/secrets/ovh_application_key.secret
-touch /etc/traefik/secrets/ovh_application_secret.secret
-touch /etc/traefik/secrets/ovh_consumer_key.secret
+# Création des dossiers pour traefik
+sudo mkdir /etc/docker/web
+sudo mkdir /etc/docker/web/traefik
+sudo mkdir /etc/docker/web/letsencrypt
+sudo mkdir /etc/docker/web/logs
+sudo mkdir /etc/docker/web/secrets
 
-echo "ovh-eu" > /etc/traefik/secrets/ovh_endpoint.secret
-echo "b09850173ee353cf" > /etc/traefik/secrets/ovh_application_key.secret
-echo "184fcd21049b773968c2b784487981a0" > /etc/traefik/secrets/ovh_application_secret.secret
-echo "57b95eb6e1a1f2af64924d0b9e8e38f3" > /etc/traefik/secrets/ovh_consumer_key.secret
+# Création des fichhiers pour traefik
+touch /etc/docker/web/logs/traefik.log
+touch /etc/docker/web/letsencrypt/acme.json
+touch /etc/docker/web/secrets/ovh_endpoint.secret
+touch /etc/docker/web/secrets/ovh_application_key.secret
+touch /etc/docker/web/secrets/ovh_application_secret.secret
+touch /etc/docker/web/secrets/ovh_consumer_key.secret
+
+# Réglage des droits pour traefik
+sudo chown $PUID:$PGID /etc/docker/web/logs/traefik.log
+sudo chmod 600 /etc/docker/web/logs/traefik.log
+sudo chown $PUID:$PGID /etc/docker/web/letsencrypt/acme.json
+sudo chmod 600 /etc/docker/web/letsencrypt/acme.json
+sudo chown $PUID:$PGID /etc/docker/web/secrets/ovh_endpoint.secret
+sudo chmod 600 /etc/docker/web/secrets/ovh_endpoint.secret
+sudo chown $PUID:$PGID /etc/docker/web/secrets/ovh_application_key.secret
+sudo chmod 600 /etc/docker/web/secrets/ovh_application_key.secret
+sudo chown $PUID:$PGID /etc/docker/web/secrets/ovh_application_secret.secret
+sudo chmod 600 /etc/docker/web/secrets/ovh_application_secret.secret
+sudo chown $PUID:$PGID /etc/docker/web/secrets/ovh_consumer_key.secret
+sudo chmod 600 /etc/docker/web/secrets/ovh_consumer_key.secret
+
+
+# Copie des secrets
+echo "$OVH_ENDPOINT" > /etc/docker/web/secrets/ovh_endpoint.secret
+echo "$OVH_APPKEY" > /etc/docker/web/secrets/ovh_application_key.secret
+echo "$OVH_APP_SECRET" > /etc/docker/web/secrets/ovh_application_secret.secret
+echo "$OVH_CONSUMER_KEY" > /etc/docker/web/secrets/ovh_consumer_key.secret
+
+# Récupération des fichiers de config
+cp ../files/docker/docker-compose.yaml /etc/docker/web
+cp ../files/docker/traefik/traefik_middlewares.yml /etc/docker/web/traefik/
+cp ../files/docker/traefik/traefik_tls.yml /etc/docker/web/traefik/
+
+# Remplacement des variables dans les fichiers de config
+cd /etc/docker/web
+sed -i "s/@PUID@/$PUID/g" docker-compose.yaml
+sed -i "s/@PGID@/$PGID/g" docker-compose.yaml
+sed -i "s/@EMAIL@/$EMAIL/g" docker-compose.yaml
+sed -i "s/@DOMAIN_NAME@/$DOMAIN_NAME/g" docker-compose.yaml

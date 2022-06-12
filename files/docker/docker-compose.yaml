@@ -6,13 +6,13 @@ networks:
 
 secrets:
   ovh_endpoint:
-    file: "/etc/traefik/secrets/ovh_endpoint.secret"
+    file: "/etc/docker/web/secrets/ovh_endpoint.secret"
   ovh_application_key:
-    file: "/etc/traefik/secrets/ovh_application_key.secret"
+    file: "/etc/docker/web/secrets/ovh_application_key.secret"
   ovh_application_secret:
-    file: "/etc/traefik/secrets/ovh_application_secret.secret"
+    file: "/etc/docker/web/secrets/ovh_application_secret.secret"
   ovh_consumer_key:
-    file: "/etc/traefik/secrets/ovh_consumer_key.secret"
+    file: "/etc/docker/web/secrets/ovh_consumer_key.secret"
 
 services:
   traefik:
@@ -24,13 +24,13 @@ services:
       - "--global.checkNewVersion=true"
       - "--global.sendAnonymousUsage=true"
       - "--accesslog=true"
-      - "--accesslog.filepath=/etc/traefik/logs/traefik.log"
+      - "--accesslog.filepath=/etc/docker/web/logs/traefik.log"
       - "--log.level=INFO"
       - "--providers.docker"
       - "--providers.docker.exposedbydefault=false"
       - "--api.insecure=true"
       #- "--api.dashboard=true"
-      - "--providers.file.directory=/etc/traefik/config/"
+      - "--providers.file.directory=/etc/docker/web/traefik"
       - "--providers.file.watch=true"
       # Config entry point
       - "--entrypoints.web.address=:80"
@@ -41,21 +41,21 @@ services:
       - "--certificatesresolvers.resolver.acme.dnschallenge=true"
       - "--certificatesresolvers.resolver.acme.dnschallenge.provider=ovh"
       - "--certificatesresolvers.resolver.acme.dnschallenge.delayBeforeCheck=10"
-      - "--certificatesresolvers.resolver.acme.email=loic.chaufournais@hotmail.fr"
-      - "--certificatesresolvers.resolver.acme.storage=/etc/traefik/letsencrypt/acme.json"
-    labels:
+      - "--certificatesresolvers.resolver.acme.email=@EMAIL@"
+      - "--certificatesresolvers.resolver.acme.storage=/etc/docker/web/letsencrypt/acme.json"
+    #labels:
       # Dashboard HTTPS
       #- "traefik.enable=true"
-      #- "traefik.http.routers.traefik_https.rule=Host(`traefik.titaniaseed.ovh`) && (Path(`/dashboard`) || Path(`/api`)"
+      #- "traefik.http.routers.traefik_https.rule=Host(`traefik.@DOMAIN_NAME@`) && (Path(`/dashboard`) || Path(`/api`)"
       #- "traefik.http.routers.traefik_https.entrypoints=websecure"
       #- "traefik.http.routers.traefik_https.tls: true"
       #- "traefik.http.routers.traefik_https.tls.certresolver=resolver"
       #- "traefik.http.routers.traefik_https.service=api@internal"
       # Dashboard Auth
-      - "traefik.http.routers.traefik_https.middlewares=traefik-auth"
-      - "traefik.http.middlewares.traefik-auth.basicauth.users=admin:$$apr1$$iNdRs1II$$Qdw59WFY6y0Oaf0JaZTip0"
+      #- "traefik.http.routers.traefik_https.middlewares=traefik-auth"
+      #- "traefik.http.middlewares.traefik-auth.basicauth.users=admin:$$apr1$$iNdRs1II$$Qdw59WFY6y0Oaf0JaZTip0"
       # Dashboard HTTP Redirect
-      #- "traefik.http.routers.traefik_http.rule=Host(`traefik.titaniaseed.ovh`) && (Path(`/dashboard`) || Path(`/api`)"
+      #- "traefik.http.routers.traefik_http.rule=Host(`traefik.@DOMAIN_NAME@`) && (Path(`/dashboard`) || Path(`/api`)"
       #- "traefik.http.routers.traefik_http.entrypoints=web"
       #- "traefik.http.routers.traefik_http.middlewares=redirect-https"
       #- "traefik.http.middlewares.redirect-https.redirectscheme.scheme=https"
@@ -76,8 +76,8 @@ services:
       - "OVH_CONSUMER_KEY_FILE=/run/secrets/ovh_consumer_key"
     volumes:
       - "/var/run/docker.sock:/var/run/docker.sock"
-      - "./letsencrypt:/etc/traefik/letsencrypt"
-      - "./config/:/etc/traefik/config/:ro"
+      - "./letsencrypt:/etc/docker/web/letsencrypt/"
+      - "./config/:/etc/docker/web/traefik/:ro"
     networks:
       - web
 
@@ -90,11 +90,10 @@ services:
       disable: true
     labels:
       - 'traefik.enable=true'
-      - 'traefik.http.routers.authelia.rule=Host(`authelia.titaniaseed.ovh`)'
       - 'traefik.http.routers.authelia.entrypoints=websecure'
-      #- 'traefik.http.routers.authelia.tls=true'
+      - 'traefik.http.routers.authelia.rule=Host(`login.@DOMAIN_NAME@`)'
       - 'traefik.http.routers.authelia.tls.certresolver=resolver'
-      - 'traefik.http.middlewares.authelia.forwardauth.address=http://authelia:9091/api/verify?rd=https://authelia.titaniaseed.ovh'  # yamllint disable-line rule:line-length
+      - 'traefik.http.middlewares.authelia.forwardauth.address=http://authelia:9091/api/verify?rd=https://login.@DOMAIN_NAME@'  # yamllint disable-line rule:line-length
       - 'traefik.http.middlewares.authelia.forwardauth.trustForwardHeader=true'
       - 'traefik.http.middlewares.authelia.forwardauth.authResponseHeaders=Remote-User,Remote-Groups,Remote-Name,Remote-Email'  # yamllint disable-line rule:line-length
     expose:
@@ -104,7 +103,7 @@ services:
     volumes:
       - ./authelia:/config
     networks:
-      - net
+      - web
 
   whoami:
     image: traefik/whoami
@@ -114,7 +113,7 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.whoami-http.entrypoints=web"
-      - "traefik.http.routers.whoami-http.rule=Host(`titaniaseed.ovh`)"
+      - "traefik.http.routers.whoami-http.rule=Host(`@DOMAIN_NAME@`)"
       - "traefik.http.routers.whoami-http.middlewares=whoami-https"
       - "traefik.http.middlewares.whoami-https.redirectscheme.scheme=https"
       - "traefik.http.middlewares.whoami-https.redirectscheme.permanent=true"
@@ -122,5 +121,6 @@ services:
       - "traefik.http.routers.whoami-https.rule=Host(`titaniaseed.ovh`)"
       - "traefik.http.routers.whoami-https.tls.certresolver=resolver"
       - "traefik.http.middlewares.traefik=headersecure@file"
+      #- 'traefik.http.routers.secure.middlewares=authelia@docker'
     networks:
       - web
