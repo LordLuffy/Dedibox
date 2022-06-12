@@ -23,8 +23,15 @@ echo -n "${CYELLOW}Nom de domaine : ${CEND}"
 read -r DOMAIN_NAME
 echo -n "${CYELLOW}Adresse mail : ${CEND}"
 read -r EMAIL
-echo -n "${CYELLOW}FQDN : ${CEND}"
-read -r HOST
+
+echo -n "${CYELLOW}OVH Endpoind : ${CEND}"
+read -r OVH_ENDPOINT
+echo -n "${CYELLOW}OVH Application Key : ${CEND}"
+read -r OVH_APPKEY
+echo -n "${CYELLOW}OVH Application Secret : ${CEND}"
+read -r OVH_APP_SECRET
+echo -n "${CYELLOW}OVH Consumer Key : ${CEND}"
+read -r OVH_CONSUMER_KEY
 
 ######################################################################
 ######################## INSTALLATION DE BASE ########################
