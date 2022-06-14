@@ -1,0 +1,172 @@
+version: "3.8"
+
+networks:
+  web:
+    name: web
+    driver: bridge
+  #postgres:
+  #  name: postgres
+  #  driver: bridge
+
+volumes:
+  #portainer:
+  traefik:
+  #postgres:
+  #  name: db
+  #authelia:
+
+secrets:
+  ovh_endpoint:
+    file: "/etc/docker/web/secrets/ovh_endpoint.secret"
+  ovh_application_key:
+    file: "/etc/docker/web/secrets/ovh_application_key.secret"
+  ovh_application_secret:
+    file: "/etc/docker/web/secrets/ovh_application_secret.secret"
+  ovh_consumer_key:
+    file: "/etc/docker/web/secrets/ovh_consumer_key.secret"
+
+services:
+  ### TRAEFIK REVERSE PROXY ###
+  traefik:
+    image: traefik:latest
+    container_name: traefik
+    restart: always
+    command:
+      - "--global.checkNewVersion=true"
+      - "--global.sendAnonymousUsage=true"
+      - "--accesslog=true"
+      - "--accesslog.filepath=/app/logs/traefik.log"
+      - "--log.level=DEBUG"
+      - "--providers.docker"
+      - "--providers.docker.exposedbydefault=false"
+      - "--api.insecure=true"
+      - "--providers.file.directory=/app/config/traefik"
+      - "--providers.file.watch=true"
+      # Config entry point
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.websecure.address=:443"
+      # Config DNS Challenge
+      #- "--certificatesresolvers.resolver.acme.caserver=https://acme-staging-v02.api.letsencrypt.org/directory"
+      #- "--certificatesresolvers.resolver.acme.caserver=https://acme-v02.api.letsencrypt.org/directory"
+      #- "--certificatesresolvers.resolver.acme.dnschallenge=true"
+      #- "--certificatesresolvers.resolver.acme.dnschallenge.provider=ovh"
+      #- "--certificatesresolvers.resolver.acme.dnschallenge.delayBeforeCheck=10"
+      - "--certificatesresolvers.resolver.acme.email=@EMAIL@"
+      - "--certificatesresolvers.resolver.acme.storage=/app/config/traefik/letsencrypt/acme.json"
+    ports:
+      - "80:80"
+      - "443:443"
+      - "8080:8080"
+    secrets:
+      - "ovh_endpoint"
+      - "ovh_application_key"
+      - "ovh_application_secret"
+      - "ovh_consumer_key"
+    environment:
+      - "TZ=Europe/Paris"
+      - "OVH_ENDPOINT_FILE=/run/secrets/ovh_endpoint"
+      - "OVH_APPLICATION_KEY_FILE=/run/secrets/ovh_application_key"
+      - "OVH_APPLICATION_SECRET_FILE=/run/secrets/ovh_application_secret"
+      - "OVH_CONSUMER_KEY_FILE=/run/secrets/ovh_consumer_key"
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock"
+      - "/app/logs:/log"
+      - "/app/config/traefik/letsencrypt:/letsencrypt"
+      - "/app/config/traefik:/config:ro"
+      
+    networks:
+      - web
+
+  ### TRAEFIK REVERSE PROXY ###
+  #portainer:
+  #  image: portainer/portainer:latest
+  #  container_name: portainer
+  #  restart: always
+  #  command: -H unix:///var/run/docker.sock
+  #  labels:
+  #    - "traefik.enable=true"
+  #    - "traefik.http.routers.portainer-http.entrypoints=web"
+  #    - "traefik.http.routers.portainer-http.rule=Host(`portainer.@DOMAIN@`)"
+  #    - "traefik.http.routers.portainer-http.middlewares=portainer-https"
+  #    - "traefik.http.middlewares.portainer-https.redirectscheme.scheme=https"
+  #    - "traefik.http.middlewares.portainer-https.redirectscheme.permanent=true"
+  #    - "traefik.http.routers.portainer-https.entrypoints=websecure"
+  #    - "traefik.http.routers.portainer-https.rule=Host(`portainer.@DOMAIN@`)"
+  #    - "traefik.http.routers.portainer-https.tls.certresolver=resolver"
+  #    - "traefik.http.routers.portainer-https.middlewares=authelia@docker"
+  #    - "traefik.http.middlewares.traefik=headersecure@file"
+  #  ports:
+  #    - 9000:9000
+  #  environment:
+  #    - "TZ=Europe/Paris"
+  #  volumes:
+  #    - "/etc/localtime:/etc/localtime:ro"
+  #    - "/etc/timezone:/etc/timezone:ro"
+  #    - "/var/run/docker.sock:/var/run/docker.sock:ro"
+  #    - "portainer:/data"
+  #  networks:
+  #    - web
+
+  ### SSO AUTHENTIFICATION ###
+  #authelia:
+  #  image: authelia/authelia:latest
+  #  container_name: authelia
+  #  restart: always
+  #  labels:
+  #    - "traefik.enable=true"
+  #    - "traefik.http.routers.authelia.entrypoints=websecure"
+  #    - "traefik.http.routers.authelia.rule=Host(`login.@DOMAIN@`)"
+  #    - "traefik.http.routers.authelia.tls.certresolver=resolver"
+  #    - "traefik.http.middlewares.authelia.forwardauth.address=https://authelia:9091/api/verify?rd=https://login.@DOMAIN@"  # yamllint disable-line rule:line-length
+  #    - "traefik.http.middlewares.authelia.forwardauth.trustForwardHeader=true"
+  #    - "traefik.http.middlewares.authelia.forwardauth.authResponseHeaders=Remote-User,Remote-Groups,Remote-Name,Remote-Email"  # yamllint disable-line rule:line-length
+  #    - "traefik.http.middlewares.authelia-basic.forwardauth.address=http://authelia:9091/api/verify?auth=basic"
+  #    - "traefik.http.middlewares.authelia-basic.forwardauth.trustForwardHeader=true"
+  #    - "traefik.http.middlewares.authelia-basic.forwardauth.authResponseHeaders=Remote-User, Remote-Groups, Remote-Name, Remote-Email"
+  #  expose:
+  #    - 9091
+  #  environment:
+  #    - "TZ=Europe/Paris"
+  #  volumes:
+  #    - "authelia:/etc/docker/web/services_config/"
+  #  networks:
+  #    - web
+
+  ### POSTGRES SQL ###
+  #db:
+  #  image: postgres:latest
+  #  container_name: postgres
+  #  restart: always
+  #  ports:
+  #    - "5432:5432"
+  #  environment:
+  #    - "TZ=Europe/Paris"
+  #    - "POSTGRES_USER=@POSTGRES_USER@"
+  #    - "POSTGRES_PASSWORD=@POSTGRES_PASSWORD@"
+  #    - "PGDATA=/data/@POSTGRES_DATABASE@"
+  #  volumes: 
+  #    - "postgres:/data/@POSTGRES_DATABASE@"
+  #  networks:
+  #    - postgres
+
+  ### SITE ###
+  #whoami:
+  #  image: traefik/whoami
+  #  container_name: whoami
+  #  restart: always
+  #  labels:
+  #    - "traefik.enable=true"
+  #    - "traefik.http.routers.whoami-http.entrypoints=web"
+  #    - "traefik.http.routers.whoami-http.rule=Host(`@DOMAIN@`)"
+  #    - "traefik.http.routers.whoami-http.middlewares=whoami-https"
+  #    - "traefik.http.middlewares.whoami-https.redirectscheme.scheme=https"
+  #    - "traefik.http.middlewares.whoami-https.redirectscheme.permanent=true"
+  #    - "traefik.http.routers.whoami-https.entrypoints=websecure"
+  #    - "traefik.http.routers.whoami-https.rule=Host(`@DOMAIN@`)"
+  #    - "traefik.http.routers.whoami-https.tls.certresolver=resolver"
+  #    - "traefik.http.routers.whoami-https.middlewares=authelia@docker"
+  #    - "traefik.http.middlewares.traefik=headersecure@file"
+  #  environment:
+  #    - "TZ=Europe/Paris"
+  #  networks:
+  #    - web

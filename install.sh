@@ -13,17 +13,12 @@ CBLUE="${CSI}1;34m"
 ######################################################################
 ######################### DEMANDE DES SAISIES ########################
 ######################################################################
-echo -n "${CYELLOW}Nom de l'utilisateur docker : ${CEND}"
-read -r DOCKER_USER
-echo -n "${CYELLOW}Nom du groupe docker : ${CEND}"
-read -r DOCKER_GROUP
 echo -n "${CYELLOW}Port SSH : ${CEND}"
 read -r PORT_SSH
 echo -n "${CYELLOW}Nom de domaine : ${CEND}"
 read -r DOMAIN_NAME
 echo -n "${CYELLOW}Adresse mail : ${CEND}"
 read -r EMAIL
-
 echo -n "${CYELLOW}OVH Endpoind : ${CEND}"
 read -r OVH_ENDPOINT
 echo -n "${CYELLOW}OVH Application Key : ${CEND}"
@@ -32,6 +27,12 @@ echo -n "${CYELLOW}OVH Application Secret : ${CEND}"
 read -r OVH_APP_SECRET
 echo -n "${CYELLOW}OVH Consumer Key : ${CEND}"
 read -r OVH_CONSUMER_KEY
+echo -n "${CYELLOW}Utilisateur PostgreSQL : ${CEND}"
+read -r POSTGRES_USER
+echo -n "${CYELLOW}Mot de passe PostgreSQL : ${CEND}"
+read -r POSTGRES_PASSWORD
+echo -n "${CYELLOW}Nom de la base de données : ${CEND}"
+read -r POSTGRES_DATABASE
 
 ######################################################################
 ######################## INSTALLATION DE BASE ########################
@@ -64,15 +65,15 @@ sudo systemctl restart sshd
 ######################## REGLAGE DU FIREWALL #########################
 ######################################################################
 # Activation du firewall
-sudo systemctl enable nftables
+#sudo systemctl enable nftables
 
 # Fichier de configuration
-rm /etc/nftables.conf
-cp ../files/nftables/nftables.conf /etc
-sed -i "s/@PORTSSH@/$PORT_SSH/g" /etc/nftables.conf
+#rm /etc/nftables.conf
+#cp ../files/nftables/nftables.conf /etc
+#sed -i "s/@PORTSSH@/$PORT_SSH/g" /etc/nftables.conf
 
 # Démarrage
-sudo systemctl start nftables
+#sudo systemctl start nftables
 
 ######################################################################
 #################### INSTALLATION DOCKER COMPOSE #####################
@@ -86,77 +87,54 @@ sudo mv docker-compose-linux-x86_64 /usr/local/bin/docker-compose
 ######################################################################
 # Launch service
 sudo systemctl enable --now docker
-
-# Création d'un groupe docker et ajout d'un utilisateur (pour ne pas utiliser le compte root)
-sudo groupadd $DOCKER_GROUP
-sudo useradd $DOCKER_USER
-sudo usermod -aG $DOCKER_GROUP $DOCKER_USER
-PUID=$(id -u $DOCKER_USER)
-PGID=$(id -g $DOCKER_USER)
-
-######################################################################
-######################## SECURISATIOH DOCKER  ########################
-######################################################################
 rm /etc/docker/daemon.json
-cp ../files/docker/daemon.json /etc/docker
+cp /tmp/Dedibox/files/docker/daemon.json /etc/docker
 sudo systemctl restart docker
 
 ######################################################################
-#################### DOCKER : CONFIG FICHIER YAML ####################
+###################### CREATION DES REPERTOIRES ######################
 ######################################################################
-# Création des dossiers pour traefik
-sudo mkdir /etc/docker/web
-sudo mkdir /etc/docker/web/traefik
-sudo mkdir /etc/docker/web/letsencrypt
-sudo mkdir /etc/docker/web/logs
-sudo mkdir /etc/docker/web/secrets
-sudo mkdir /etc/docker/web/pgadmin
-sudo mkdir /data
-sudo mkdir /data/postgres
+sudo mkdir /app
+sudo mkdir /app/config
+sudo mkdir /app/config/traefik
+sudo mkdir /app/config/traefik/letsencrypt
+sudo mkdir /app/config/authelia
+sudo mkdir /app/data
+sudo mkdir /app/logs
+sudo mkdir /app/secrets
 
-# Création des fichhiers pour traefik
-touch /etc/docker/web/logs/traefik.log
-touch /etc/docker/web/letsencrypt/acme.json
-touch /etc/docker/web/secrets/ovh_endpoint.secret
-touch /etc/docker/web/secrets/ovh_application_key.secret
-touch /etc/docker/web/secrets/ovh_application_secret.secret
-touch /etc/docker/web/secrets/ovh_consumer_key.secret
+######################################################################
+####################### CREATION DES FICHIERS ########################
+######################################################################
+touch /app/logs/traefik.log
+sudo chmod 600 /app/logs/traefik.log
+touch /app/config/traefik/letsencrypt/acme.json
+sudo chmod 600 /app/config/traefik/letsencrypt/acme.json
+touch /app/secrets/ovh_endpoint.secret
+touch /app/secrets/ovh_application_key.secret
+touch /app/secrets/ovh_application_secret.secret
+touch /app/secrets/ovh_consumer_key.secret
 
-# Réglage des droits pour traefik
-sudo chown $PUID:$PGID /etc/docker/web/logs/traefik.log
-sudo chmod 600 /etc/docker/web/logs/traefik.log
-sudo chown $PUID:$PGID /etc/docker/web/letsencrypt/acme.json
-sudo chmod 600 /etc/docker/web/letsencrypt/acme.json
-sudo chown $PUID:$PGID /etc/docker/web/secrets/ovh_endpoint.secret
-sudo chmod 600 /etc/docker/web/secrets/ovh_endpoint.secret
-sudo chown $PUID:$PGID /etc/docker/web/secrets/ovh_application_key.secret
-sudo chmod 600 /etc/docker/web/secrets/ovh_application_key.secret
-sudo chown $PUID:$PGID /etc/docker/web/secrets/ovh_application_secret.secret
-sudo chmod 600 /etc/docker/web/secrets/ovh_application_secret.secret
-sudo chown $PUID:$PGID /etc/docker/web/secrets/ovh_consumer_key.secret
-sudo chmod 600 /etc/docker/web/secrets/ovh_consumer_key.secret
-
+######################################################################
+################### COPIE DES DONNEES ET FICHIERS ####################
+######################################################################
+# Copie des fichiers
+cp /tmp/Dedibox/docker-compose.yaml /app
+cp /tmp/Dedibox/files/services/traefik/traefik_middlewares.yml /app/config/traefik
+cp /tmp/Dedibox/files/services/traefik/traefik_tls.yml /app/config/traefik
+cp /tmp/Dedibox/files/services/authelia/authelia_configuration.yml /app/config/authelia
+cp /tmp/Dedibox/files/services/authelia/users_database.yml /app/config/authelia
 
 # Copie des secrets
-echo "$OVH_ENDPOINT" > /etc/docker/web/secrets/ovh_endpoint.secret
-echo "$OVH_APPKEY" > /etc/docker/web/secrets/ovh_application_key.secret
-echo "$OVH_APP_SECRET" > /etc/docker/web/secrets/ovh_application_secret.secret
-echo "$OVH_CONSUMER_KEY" > /etc/docker/web/secrets/ovh_consumer_key.secret
-
-# Récupération des fichiers de config
-cp ../files/docker/docker-compose.yaml /etc/docker/web
-cp ../files/docker/traefik/traefik_middlewares.yml /etc/docker/web/traefik/
-cp ../files/docker/traefik/traefik_tls.yml /etc/docker/web/traefik/
-
-
-
-
-cd /
+echo "$OVH_ENDPOINT" > /app/secrets/ovh_endpoint.secret
+echo "$OVH_APPKEY" > /app/secrets/ovh_application_key.secret
+echo "$OVH_APP_SECRET" > /app/secrets/ovh_application_secret.secret
+echo "$OVH_CONSUMER_KEY" > /app/secrets/ovh_consumer_key.secret
 
 # Remplacement des variables dans les fichiers de config
 cd /etc/docker/web
-sed -i "s/@PUID@/$PUID/g" docker-compose.yaml
-sed -i "s/@PGID@/$PGID/g" docker-compose.yaml
-sed -i "s/@EMAIL@/$EMAIL/g" docker-compose.yaml
-sed -i "s/@DOMAIN_NAME@/$DOMAIN_NAME/g" docker-compose.yaml
-
+sed -i "s/@EMAIL@/$EMAIL/g" /app/docker-compose.yaml
+sed -i "s/@DOMAIN@/$DOMAIN_NAME/g" /app/docker-compose.yaml
+sed -i "s/@POSTGRES_USER@/$POSTGRES_USER/g" /app/docker-compose.yaml
+sed -i "s/@POSTGRES_PASSWORD@/$POSTGRES_PASSWORD/g" /app/docker-compose.yaml
+sed -i "s/@POSTGRES_DATABASE@/$POSTGRES_DATABASE/g" /app/docker-compose.yaml

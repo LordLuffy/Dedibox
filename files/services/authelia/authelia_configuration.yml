@@ -1,0 +1,47 @@
+###############################################################
+#                   Authelia configuration                    #
+###############################################################
+
+host: 0.0.0.0
+port: 9091
+log_level: debug
+jwt_secret: a_very_important_secret
+totp:
+  issuer: authelia.com
+
+authentication_backend:
+  file:
+    path: /etc/docker/web/services_config/users_database.yml
+
+access_control:
+  default_policy: deny
+  rules:
+    - domain: '*.titaniaseed.ovh'
+      policy: one_factor
+
+session:
+  name: authelia_session
+  secret: unsecure_session_secret
+  expiration: 3600 # 1 hour
+  inactivity: 300 # 5 minutes
+  domain: titaniaseed.ovh # Should match whatever your root protected domain is
+
+regulation:
+  max_retries: 3
+  find_time: 120
+  ban_time: 300
+
+storage:
+  encryption_key: a_very_important_secret
+  local:
+    path: /data/db.sqlite3
+
+notifier:
+  filesystem:
+    filename: /etc/docker/web/logs/notification.txt
+
+log:
+  level: debug
+  file_path: /etc/docker/web/logs/authelia.log
+
+theme: dark
