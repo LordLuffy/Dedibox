@@ -17,13 +17,13 @@ volumes:
 
 secrets:
   ovh_endpoint:
-    file: "/etc/docker/web/secrets/ovh_endpoint.secret"
+    file: "/app/secrets/ovh_endpoint.secret"
   ovh_application_key:
-    file: "/etc/docker/web/secrets/ovh_application_key.secret"
+    file: "/app/secrets/ovh_application_key.secret"
   ovh_application_secret:
-    file: "/etc/docker/web/secrets/ovh_application_secret.secret"
+    file: "/app/secrets/ovh_application_secret.secret"
   ovh_consumer_key:
-    file: "/etc/docker/web/secrets/ovh_consumer_key.secret"
+    file: "/app/secrets/ovh_consumer_key.secret"
 
 services:
   ### TRAEFIK REVERSE PROXY ###
@@ -70,7 +70,7 @@ services:
       - "OVH_CONSUMER_KEY_FILE=/run/secrets/ovh_consumer_key"
     volumes:
       - "/var/run/docker.sock:/var/run/docker.sock"
-      - "/app/logs:/log"
+      - "/app/logs/traefik.log:/app/logs/traefik.log"
       - "/app/config/traefik/letsencrypt:/letsencrypt"
       - "/app/config/traefik:/config:ro"
       

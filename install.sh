@@ -132,7 +132,6 @@ echo "$OVH_APP_SECRET" > /app/secrets/ovh_application_secret.secret
 echo "$OVH_CONSUMER_KEY" > /app/secrets/ovh_consumer_key.secret
 
 # Remplacement des variables dans les fichiers de config
-cd /etc/docker/web
 sed -i "s/@EMAIL@/$EMAIL/g" /app/docker-compose.yaml
 sed -i "s/@DOMAIN@/$DOMAIN_NAME/g" /app/docker-compose.yaml
 sed -i "s/@POSTGRES_USER@/$POSTGRES_USER/g" /app/docker-compose.yaml
