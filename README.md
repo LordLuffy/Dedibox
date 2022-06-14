@@ -39,5 +39,5 @@ En retour, on obtient l'URL de validation qu'il faut saisir dans un navigateur
 sudo apt-get update -y && apt-get upgrade -y && apt-get install apt-transport-https ca-certificates git -y
 cd /tmp
 git clone https://github.com/LordLuffy/Dedibox.git
-cd Dedibox/source
+cd Dedibox
 chmod a+x install.sh && ./install.sh

@@ -57,7 +57,7 @@ sudo apt-get install docker-ce docker-ce-cli containerd.io -y
 ########################### SECURITE : SSH ###########################
 ######################################################################
 rm /etc/ssh/sshd_config
-cp ../files/ssh/sshd_config /etc/ssh
+cp /tmp/Dedibox/files/ssh/sshd_config /etc/ssh
 sed -i "s/@PORTSSH@/$PORT_SSH/g" /etc/ssh/sshd_config
 sudo systemctl restart sshd
 
@@ -119,7 +119,7 @@ touch /app/secrets/ovh_consumer_key.secret
 ################### COPIE DES DONNEES ET FICHIERS ####################
 ######################################################################
 # Copie des fichiers
-cp /tmp/Dedibox/docker-compose.yaml /app
+cp /tmp/Dedibox/files/docker-compose.yaml /app
 cp /tmp/Dedibox/files/services/traefik/traefik_middlewares.yml /app/config/traefik
 cp /tmp/Dedibox/files/services/traefik/traefik_tls.yml /app/config/traefik
 cp /tmp/Dedibox/files/services/authelia/authelia_configuration.yml /app/config/authelia
